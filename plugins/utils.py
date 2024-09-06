@@ -8,8 +8,12 @@ import os
 
 # get dict of stations names and timezones
 def fetch_weather_data(station_id):
+    '''
+    
+    '''
     # get stations names and timezones
     API_BASE_URL = "https://api.weather.gov/stations"
+    
     response = requests.get(f"{API_BASE_URL}")
     stations = response.json().get('features', [])
     name_map = {station['properties']['stationIdentifier']: station['properties']['name'] for station in stations}
