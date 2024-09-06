@@ -5,7 +5,6 @@ from datetime import datetime
 import snowflake.connector
 import os
 
-
 # get dict of stations names and timezones
 def fetch_weather_data(station_id):
     '''
