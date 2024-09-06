@@ -2,6 +2,9 @@ import requests
 import pandas as pd
 from sqlalchemy import create_engine
 from datetime import datetime
+import snowflake.connector
+import os
+
 
 # get dict of stations names and timezones
 def fetch_weather_data(station_id):
@@ -52,3 +55,50 @@ def transform_observations(station_id, observations, name_map, timezone_map):
     return transformed_data
 
 
+
+def load_data_to_snowflake(data):
+    """
+    Función para cargar datos transformados a Snowflake.
+    """
+    # Obtener la contraseña desde la variable de entorno
+    password = os.getenv('SNOWFLAKE_PASSWORD')
+    
+    # Conectar a Snowflake
+    conn = snowflake.connector.connect(
+        user='ignacioloyolahernandez',
+        password=password,
+        account='cu03892.sa-east-1.aws',
+        warehouse='weather_wh',
+        database='weather_db',
+        schema='public',
+        role='accountadmin'
+    )
+
+    cur = conn.cursor()
+
+    # Crear la tabla si no existe
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS weather_obs (
+        id INT AUTOINCREMENT,
+        observation_time TIMESTAMP,
+        temperature FLOAT,
+        humidity FLOAT,
+        wind_speed FLOAT
+    );
+    """)
+
+    # Insertar los datos transformados en la tabla
+    insert_query = """
+    INSERT INTO weather_obs (observation_time, temperature, humidity, wind_speed)
+    VALUES (%s, %s, %s, %s);
+    """
+    for record in data:
+        cur.execute(insert_query, (
+            record['timestamp'],
+            record['temperature'],
+            record['humidity'],
+            record['wind_speed']
+        ))
+
+    cur.close()
+    conn.close()

@@ -1,0 +1,6 @@
+station_id,station_name,station_timezone,latitude,longitude,timestamp,temperature,wind_speed,humidity
+0128W,Ringling Museum of Art,America/New_York,27.38,-82.56,2024-09-06T15:40:00+00:00,33.44,6.44,67.82
+0128W,Ringling Museum of Art,America/New_York,27.38,-82.56,2024-09-06T15:30:00+00:00,32.89,0.0,67.51
+0128W,Ringling Museum of Art,America/New_York,27.38,-82.56,2024-09-06T15:10:00+00:00,32.5,8.03,71.84
+0128W,Ringling Museum of Art,America/New_York,27.38,-82.56,2024-09-06T14:50:00+00:00,31.89,4.82,73.84
+0128W,Ringling Museum of Art,America/New_York,27.38,-82.56,2024-09-06T14:40:00+00:00,31.56,11.27,75.5
