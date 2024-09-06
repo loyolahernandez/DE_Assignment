@@ -84,8 +84,20 @@ def load_data_to_snowflake(data):
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
     """
 
-    # Iterar sobre la data y cargar los datos
     for record in data:
+        if any([
+            record['station_id'] is None,
+            record['station_name'] is None,
+            record['station_timezone'] is None,
+            record['latitude'] is None,
+            record['longitude'] is None,
+            record['timestamp'] is None
+        ]):
+            # Si falta un valor crítico, puedes saltar ese registro o manejarlo de otra manera
+            print(f"Registro con valores faltantes: {record}")
+            continue  # Saltar este registro
+
+        # Si todo está bien, hacer la inserción
         cur.execute(insert_query, (
             record['station_id'],
             record['station_name'],
