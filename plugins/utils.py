@@ -24,7 +24,7 @@ def fetch_weather_data(station_id):
 
 
 # Transform and create data points
-def transform_observations(station_id, observations, name_map, timezone_map):
+def transform_observations(station_id, name_map, timezone_map, observations):
     transformed_data = []
     name = name_map.get(station_id, "Unknown")  # Get station's timezone
     timezone = timezone_map.get(station_id, "Unknown")  # Get station's timezone
@@ -78,29 +78,33 @@ def load_data_to_snowflake(data):
 
     cur = conn.cursor()
 
-    # Data query
-    insert_query = """
-    INSERT INTO weather_obs (
-        STATION_ID, STATION_NAME, STATION_TIMEZONE, LATITUDE, LONGITUDE, TIMESTAMP, TEMPERATURE, WIND_SPEED, HUMIDITY
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+    # Insertar o actualizar datos usando el comando MERGE
+    merge_query = """
+    MERGE INTO WEATHER_OBS AS target
+    USING (SELECT %s AS station_id,
+                  %s AS station_name,
+                  %s AS station_timezone,
+                  %s AS latitude,
+                  %s AS longitude,
+                  %s AS timestamp,
+                  %s AS temperature,
+                  %s AS wind_speed,
+                  %s AS humidity
+           ) AS source
+    ON target.station_id = source.station_id AND target.timestamp = source.timestamp
+    WHEN MATCHED THEN 
+        UPDATE SET 
+            target.temperature = source.temperature,
+            target.wind_speed = source.wind_speed,
+            target.humidity = source.humidity
+    WHEN NOT MATCHED THEN 
+        INSERT (station_id, station_name, station_timezone, latitude, longitude, timestamp, temperature, wind_speed, humidity)
+        VALUES (source.station_id, source.station_name, source.station_timezone, source.latitude, source.longitude, source.timestamp, source.temperature, source.wind_speed, source.humidity);
     """
 
+    # Iterar sobre el DataFrame o lista de diccionarios
     for record in data:
-        # Null handler
-        if any([
-            record['station_id'] is None,
-            record['station_name'] is None,
-            record['station_timezone'] is None,
-            record['latitude'] is None,
-            record['longitude'] is None,
-            record['timestamp'] is None
-        ]):
-            
-            print(f"Registro con valores faltantes: {record}")
-            continue
-
-        # If not null --> insert query
-        cur.execute(insert_query, (
+        cur.execute(merge_query, (
             record['station_id'],
             record['station_name'],
             record['station_timezone'],

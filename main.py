@@ -6,7 +6,7 @@ def main():
     name_map, timezone_map, observations = fetch_weather_data(station_id)
 
     # Transform
-    transformed_data = transform_observations(station_id, observations, name_map, timezone_map)
+    transformed_data = transform_observations(station_id, name_map, timezone_map, observations)
 
     # Load
     load_data_to_snowflake(transformed_data)
