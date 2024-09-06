@@ -30,7 +30,7 @@ def transform_observations(station_id, observations, name_map, timezone_map):
     timezone = timezone_map.get(station_id, "Unknown")  # Get station's timezone
 
     for obs in observations:
-        # Verificar y extraer cada atributo asegurándose de que no sea None antes de aplicar round
+        # Specific data transformations (if not None)
         temp = obs['properties'].get('temperature')
         temperature = round(temp['value'], 2) if temp and temp.get('value') is not None else None
         
@@ -40,6 +40,7 @@ def transform_observations(station_id, observations, name_map, timezone_map):
         humidity_data = obs['properties'].get('relativeHumidity')
         humidity = round(humidity_data['value'], 2) if humidity_data and humidity_data.get('value') is not None else None
         
+        # Final data to be loaded
         data = {
             "station_id": station_id,
             "station_name": name,
@@ -56,15 +57,15 @@ def transform_observations(station_id, observations, name_map, timezone_map):
 
 
 
-# Función para cargar el DataFrame a Snowflake
+# Load data to Snowflake db
 def load_data_to_snowflake(data):
     """
     Función para cargar un DataFrame a la tabla en Snowflake.
     """
-    # Obtener la contraseña desde la variable de entorno
+    # Get snowflake password
     password = os.getenv('SNOWFLAKE_PASSWORD')
     
-    # Conectar a Snowflake
+    # Snowflake connection
     conn = snowflake.connector.connect(
         user='ignacioloyolahernandez',
         password=password,
@@ -77,7 +78,7 @@ def load_data_to_snowflake(data):
 
     cur = conn.cursor()
 
-    # Insertar los datos del DataFrame en la tabla
+    # Data query
     insert_query = """
     INSERT INTO weather_obs (
         STATION_ID, STATION_NAME, STATION_TIMEZONE, LATITUDE, LONGITUDE, TIMESTAMP, TEMPERATURE, WIND_SPEED, HUMIDITY
@@ -85,6 +86,7 @@ def load_data_to_snowflake(data):
     """
 
     for record in data:
+        # Null handler
         if any([
             record['station_id'] is None,
             record['station_name'] is None,
@@ -93,11 +95,11 @@ def load_data_to_snowflake(data):
             record['longitude'] is None,
             record['timestamp'] is None
         ]):
-            # Si falta un valor crítico, puedes saltar ese registro o manejarlo de otra manera
+            
             print(f"Registro con valores faltantes: {record}")
-            continue  # Saltar este registro
+            continue
 
-        # Si todo está bien, hacer la inserción
+        # If not null --> insert query
         cur.execute(insert_query, (
             record['station_id'],
             record['station_name'],
