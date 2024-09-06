@@ -84,18 +84,18 @@ def load_data_to_snowflake(data):
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
     """
 
-    # Iterar sobre el DataFrame y cargar los datos
-    for _, row in data.iterrows():
+    # Iterar sobre la data y cargar los datos
+    for record in data:
         cur.execute(insert_query, (
-            row['station_id'],
-            row['station_name'],
-            row['station_timezone'],
-            row['latitude'],
-            row['longitude'],
-            row['timestamp'],
-            row['temperature'],
-            row['wind_speed'],
-            row['humidity']
+            record['station_id'],
+            record['station_name'],
+            record['station_timezone'],
+            record['latitude'],
+            record['longitude'],
+            record['timestamp'],
+            record['temperature'],
+            record['wind_speed'],
+            record['humidity']
         ))
 
     cur.close()
