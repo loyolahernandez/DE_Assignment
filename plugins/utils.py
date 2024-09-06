@@ -56,9 +56,10 @@ def transform_observations(station_id, observations, name_map, timezone_map):
 
 
 
+# Función para cargar el DataFrame a Snowflake
 def load_data_to_snowflake(data):
     """
-    Función para cargar datos transformados a Snowflake.
+    Función para cargar un DataFrame a la tabla en Snowflake.
     """
     # Obtener la contraseña desde la variable de entorno
     password = os.getenv('SNOWFLAKE_PASSWORD')
@@ -76,28 +77,25 @@ def load_data_to_snowflake(data):
 
     cur = conn.cursor()
 
-    # Crear la tabla si no existe
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS weather_obs (
-        id INT AUTOINCREMENT,
-        observation_time TIMESTAMP,
-        temperature FLOAT,
-        humidity FLOAT,
-        wind_speed FLOAT
-    );
-    """)
-
-    # Insertar los datos transformados en la tabla
+    # Insertar los datos del DataFrame en la tabla
     insert_query = """
-    INSERT INTO weather_obs (observation_time, temperature, humidity, wind_speed)
-    VALUES (%s, %s, %s, %s);
+    INSERT INTO weather_obs (
+        STATION_ID, STATION_NAME, STATION_TIMEZONE, LATITUDE, LONGITUDE, TIMESTAMP, TEMPERATURE, WIND_SPEED, HUMIDITY
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
     """
-    for record in data:
+
+    # Iterar sobre el DataFrame y cargar los datos
+    for _, row in data.iterrows():
         cur.execute(insert_query, (
-            record['timestamp'],
-            record['temperature'],
-            record['humidity'],
-            record['wind_speed']
+            row['station_id'],
+            row['station_name'],
+            row['station_timezone'],
+            row['latitude'],
+            row['longitude'],
+            row['timestamp'],
+            row['temperature'],
+            row['wind_speed'],
+            row['humidity']
         ))
 
     cur.close()
