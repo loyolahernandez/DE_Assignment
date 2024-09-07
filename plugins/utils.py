@@ -150,8 +150,8 @@ def load_data_to_postgres(data):
     """
 
     conn = connect_to_postgres()
-    if conn is None:
-            return
+    #if conn is None:
+    #        return
 
     try:
         cur = conn.cursor()
@@ -171,11 +171,33 @@ def load_data_to_postgres(data):
         );
         """)
 
-        # Insert the data into the table
+        
+        # Check if the unique constraint exists
+        cur.execute("""
+        SELECT conname 
+        FROM pg_constraint 
+        WHERE conname = 'unique_station_time';
+        """)
+
+        # If the unique constraint does not exist, add it
+        if cur.fetchone() is None:
+            cur.execute("""
+            ALTER TABLE weather_obs
+            ADD CONSTRAINT unique_station_time UNIQUE (station_id, timestamp);
+            """)
+            print("Unique constraint added.")
+
+
+       # Insert the data into the table or update it if there is a conflict
         insert_query = """
         INSERT INTO weather_obs (
             station_id, station_name, station_timezone, latitude, longitude, timestamp, temperature, wind_speed, humidity
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (station_id, timestamp) 
+        DO UPDATE SET 
+            temperature = EXCLUDED.temperature,
+            wind_speed = EXCLUDED.wind_speed,
+            humidity = EXCLUDED.humidity;
         """
         
         for record in data:
@@ -192,6 +214,7 @@ def load_data_to_postgres(data):
             ))
 
         conn.commit()
+        print("Data loaded succesfully")
 
     except psycopg2.DatabaseError as e:
         print(f"Error loading data to PostgreSQL: {e}")
