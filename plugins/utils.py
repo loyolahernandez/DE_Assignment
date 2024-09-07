@@ -2,8 +2,8 @@ import requests
 import pandas as pd
 from sqlalchemy import create_engine
 from datetime import datetime
-import snowflake.connector
 import os
+import psycopg2
 
 # get dict of stations names and timezones
 def fetch_weather_data(station_id):
@@ -60,54 +60,46 @@ def transform_observations(station_id, name_map, timezone_map, observations):
 
 
 
-# Load data to Snowflake db
-def load_data_to_snowflake(data):
-    """
-    Función para cargar un DataFrame a la tabla en Snowflake.
-    """
-    # Get snowflake password
-    password = os.getenv('SNOWFLAKE_PASSWORD')
-    
-    # Snowflake connection
-    conn = snowflake.connector.connect(
-        user='ignacioloyolahernandez',
-        password=password,
-        account='cu03892.sa-east-1.aws',
-        warehouse='weather_wh',
-        database='weather_db',
-        schema='public',
-        role='accountadmin'
+def connect_to_postgres():
+    conn = psycopg2.connect(
+        host="localhost",
+        port="5432",
+        database="weather_db",
+        user="myuser",
+        password="mypassword"
     )
+    return conn
 
+
+
+def load_data_to_postgres(data):
+    conn = connect_to_postgres()
     cur = conn.cursor()
 
-    # Insertar o actualizar datos usando el comando MERGE
-    merge_query = """
-    MERGE INTO WEATHER_OBS AS target
-    USING (SELECT %s AS station_id,
-                  %s AS station_name,
-                  %s AS station_timezone,
-                  %s AS latitude,
-                  %s AS longitude,
-                  %s AS timestamp,
-                  %s AS temperature,
-                  %s AS wind_speed,
-                  %s AS humidity
-           ) AS source
-    ON target.station_id = source.station_id AND target.timestamp = source.timestamp
-    WHEN MATCHED THEN 
-        UPDATE SET 
-            target.temperature = source.temperature,
-            target.wind_speed = source.wind_speed,
-            target.humidity = source.humidity
-    WHEN NOT MATCHED THEN 
-        INSERT (station_id, station_name, station_timezone, latitude, longitude, timestamp, temperature, wind_speed, humidity)
-        VALUES (source.station_id, source.station_name, source.station_timezone, source.latitude, source.longitude, source.timestamp, source.temperature, source.wind_speed, source.humidity);
-    """
+    # Crear la tabla si no existe
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS weather_obs (
+        station_id VARCHAR(30),
+        station_name VARCHAR(30),
+        station_timezone VARCHAR(30),
+        latitude INTEGER,
+        longitude INTEGER,
+        timestamp VARCHAR(30),
+        temperature INTEGER,
+        wind_speed INTEGER,
+        humidity INTEGER
+    );
+    """)
 
-    # Iterar sobre el DataFrame o lista de diccionarios
+    # Insertar los datos
+    insert_query = """
+    INSERT INTO weather_obs (
+        station_id, station_name, station_timezone, latitude, longitude, timestamp, temperature, wind_speed, humidity
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+    """
+    
     for record in data:
-        cur.execute(merge_query, (
+        cur.execute(insert_query, (
             record['station_id'],
             record['station_name'],
             record['station_timezone'],
@@ -119,5 +111,6 @@ def load_data_to_snowflake(data):
             record['humidity']
         ))
 
+    conn.commit()
     cur.close()
     conn.close()

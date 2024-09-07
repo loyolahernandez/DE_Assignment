@@ -12,6 +12,22 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+
+  app:
+    build:
+      context: .
+    container_name: weather_app
+    depends_on:
+      - db
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: weather_db
+      POSTGRES_HOST: db
+    command: ["python", "main.py"]
+
+    
 volumes:
   postgres_data:
     driver: local
+
