@@ -2,3 +2,4 @@ requests
 pandas
 SQLAlchemy
 psycopg2
+pytest
