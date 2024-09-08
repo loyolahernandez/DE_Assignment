@@ -221,3 +221,35 @@ def load_data_to_postgres(data):
     finally:
         cur.close()
         conn.close()
+
+
+# Execute SQL queries from file
+def execute_query(query_path):
+    """
+    Execute a SQL query from a file and return the result.
+
+    Args:
+        query_path (str): Path to the SQL query file.
+
+    Returns:
+        list: Results of the query.
+    """
+    conn = connect_to_postgres()  # Use the existing connection function
+    if conn is None:
+        return []
+
+    try:
+        with open(query_path, 'r') as file:
+            query = file.read()
+
+        cur = conn.cursor()
+        cur.execute(query)
+        result = cur.fetchall()
+        cur.close()
+        return result
+
+    except psycopg2.DatabaseError as e:
+        print(f"Error executing query: {e}")
+        return []
+    finally:
+        conn.close()

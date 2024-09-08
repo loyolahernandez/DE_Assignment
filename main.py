@@ -1,4 +1,4 @@
-from plugins.utils import fetch_weather_data, transform_observations, connect_to_postgres, load_data_to_postgres
+from plugins.utils import fetch_weather_data, transform_observations, connect_to_postgres, load_data_to_postgres, execute_query
 
 def main():
     # Extract
@@ -14,6 +14,13 @@ def main():
     # Load
     load_data_to_postgres(transformed_data)
 
+    # Execute queries after loading data
+    temp_result = execute_query('queries/temperature.sql')
+    wind_result = execute_query('queries/wind.sql')
+
+    # Print the results of the queries
+    print(f"Average temperature for last week: {temp_result}")
+    print(f"Max wind speed change in last 7 days: {wind_result}")
 
 if __name__ == "__main__":
     main()
