@@ -1,0 +1,5 @@
+SELECT AVG(temperature) AS avg_temperature
+FROM weather_obs
+WHERE 
+    TO_TIMESTAMP(timestamp, 'YYYY-MM-DD"T"HH24:MI:SS') AT TIME ZONE 'UTC' >= (NOW() - INTERVAL '7 days')
+AND EXTRACT(DOW FROM TO_TIMESTAMP(timestamp, 'YYYY-MM-DD"T"HH24:MI:SS') AT TIME ZONE 'UTC') BETWEEN 1 AND 7;
