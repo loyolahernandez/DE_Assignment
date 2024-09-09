@@ -1,14 +1,14 @@
-# Usa una imagen base de Python
+# Python Image
 FROM python:3.9
 
-# Establece el directorio de trabajo
+# Set the working directory
 WORKDIR /app
 
-# Copia los archivos de tu proyecto
+# Copy the files of your project
 COPY . /app
 
-# Instala las dependencias necesarias
+# Install the necessary dependencies
 RUN pip install -r requirements.txt
 
-# Ejecuta el script de Python
+# Execute the Python script
 CMD ["python", "main.py"]
