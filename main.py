@@ -1,3 +1,14 @@
+"""
+Main module for the weather data pipeline.
+
+This script performs the following tasks:
+1. Fetches weather data from the National Weather Service API for a specific station.
+2. Transforms the raw observations into a structured format.
+3. Connects to a PostgreSQL database.
+4. Loads the transformed data into the database.
+5. Executes queries to calculate the average temperature and wind speed change over the last week.
+"""
+
 from src.utils import fetch_weather_data, transform_observations, connect_to_postgres, load_data_to_postgres, execute_query
 
 def main():
