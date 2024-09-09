@@ -1,4 +1,4 @@
-from plugins.utils import fetch_weather_data, transform_observations, connect_to_postgres, load_data_to_postgres, execute_query
+from src.utils import fetch_weather_data, transform_observations, connect_to_postgres, load_data_to_postgres, execute_query
 
 def main():
     # Extract
