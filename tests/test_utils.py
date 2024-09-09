@@ -1,7 +1,21 @@
+"""
+Unit tests for the utils.py module.
+
+This test suite verifies the following functionalities in utils.py:
+- fetch_weather_data: Tests for successful and failed API calls to fetch weather data from the National Weather Service.
+- transform_observations: Ensures that raw weather observations are correctly transformed into the appropriate format for database insertion.
+- connect_to_postgres: Tests the connection to a PostgreSQL database, covering both success and failure scenarios.
+- load_data_to_postgres: Verifies that transformed weather data is correctly inserted into the PostgreSQL database.
+- execute_query: Ensures that SQL queries are correctly read from files and executed against the PostgreSQL database.
+
+The tests utilize unittest.mock to simulate external dependencies such as requests for API calls and psycopg2 for database connections.
+"""
+
+
 import pytest
 from unittest.mock import patch, mock_open
-import requests  # Importar requests para poder mockearlo correctamente
-import psycopg2  # Importar psycopg2 para mockear la conexión a PostgreSQL
+import requests
+import psycopg2
 from src.utils import (
     fetch_weather_data, 
     transform_observations, 
@@ -10,10 +24,10 @@ from src.utils import (
     execute_query
 )
 
-# Probar fetch_weather_data
+# Test fetch_weather_data - success case
 @patch('src.utils.requests.get')
 def test_fetch_weather_data_success(mock_get):
-    # Simular la respuesta de las estaciones
+    # Mock API response for stations and observations
     mock_get.return_value.status_code = 200
     mock_get.return_value.json.side_effect = [
         {
@@ -53,9 +67,10 @@ def test_fetch_weather_data_success(mock_get):
     assert len(observations) > 0
     assert observations[0]["properties"]["temperature"]["value"] == 22.5
 
+# Test fetch_weather_data - failure case
 @patch('src.utils.requests.get')
 def test_fetch_weather_data_fail(mock_get):
-    # Simular un fallo en la conexión a la API
+    # Mock API request failure
     mock_get.side_effect = requests.RequestException
 
     station_id = "STATION_1"
@@ -65,10 +80,9 @@ def test_fetch_weather_data_fail(mock_get):
     assert timezone_map == {}
     assert observations == []
 
-
-# Probar transform_observations
+# Test transform_observations
 def test_transform_observations():
-    # Datos simulados de entrada
+    # Mock input data for transformation
     station_id = "STATION_1"
     name_map = {"STATION_1": "Station One"}
     timezone_map = {"STATION_1": "UTC"}
@@ -94,28 +108,48 @@ def test_transform_observations():
     assert result[0]["wind_speed"] == 5.6
     assert result[0]["humidity"] == 80
 
-
-# Probar connect_to_postgres
+# Test connect_to_postgres - success case
 @patch('src.utils.psycopg2.connect')
 def test_connect_to_postgres_success(mock_connect):
-    mock_connect.return_value = True  # Simula una conexión exitosa
+    # Mock successful PostgreSQL connection
+    mock_connect.return_value = True  
     conn = connect_to_postgres()
     assert conn is not None
     assert mock_connect.called
 
+# Test connect_to_postgres - failure case
 @patch('src.utils.psycopg2.connect')
 def test_connect_to_postgres_fail(mock_connect):
-    mock_connect.side_effect = psycopg2.DatabaseError  # Simula un fallo en la conexión
+    # Mock failure in PostgreSQL connection
+    mock_connect.side_effect = psycopg2.DatabaseError  
     conn = connect_to_postgres()
     assert conn is None
 
+# Test execute_query
+@patch('src.utils.connect_to_postgres')  # Make sure to adjust this path if needed
+@patch('builtins.open', new_callable=mock_open, read_data="SELECT * FROM weather_obs;")
+def test_execute_query(mock_open, mock_connect):
+    # Mock database connection and cursor
+    mock_conn = mock_connect.return_value
+    mock_cursor = mock_conn.cursor.return_value
 
-# Probar load_data_to_postgres
+    # Simulate successful execution of the query
+    mock_cursor.execute.return_value = True
+    
+    # Call the function to execute the query
+    result = execute_query("path/to/query.sql")
+    
+    # Verify that the execute method was called
+    mock_cursor.execute.assert_called_once_with("SELECT * FROM weather_obs;")
+
+# Test load_data_to_postgres
 @patch('src.utils.connect_to_postgres')
-@patch('src.utils.psycopg2.connect')
-def test_load_data_to_postgres(mock_connect, mock_conn):
-    # Simulamos la conexión y la inserción de datos
-    mock_conn.cursor.return_value = mock_connect
+def test_load_data_to_postgres(mock_connect):
+    # Mock database connection and cursor
+    mock_conn = mock_connect.return_value
+    mock_cursor = mock_conn.cursor.return_value
+    
+    # Mock input data for database insertion
     data = [
         {
             "station_id": "STATION_1",
@@ -129,14 +163,9 @@ def test_load_data_to_postgres(mock_connect, mock_conn):
             "humidity": 80
         }
     ]
+    
+    # Call the function to load data into the database
     load_data_to_postgres(data)
-    assert mock_conn.cursor().execute.called
-
-
-# Probar execute_query
-@patch('src.utils.connect_to_postgres')
-@patch('builtins.open', new_callable=mock_open, read_data="SELECT * FROM weather_obs;")
-def test_execute_query(mock_open, mock_connect):
-    mock_connect.cursor.return_value.execute.return_value = True
-    result = execute_query("path/to/query.sql")
-    assert mock_connect.cursor().execute.called
+    
+    # Verify that the execute method was called
+    assert mock_cursor.execute.called
